@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>StreamFlix - Catálogo TMDB</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --red: #e50914;
+      --red-dark: #b20710;
+      --surface: #111111;
+      --surface-2: #181818;
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: #000000;
+      min-width: 320px;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .poster-glow {
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.65);
+    }
+
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .line-clamp-4 {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      background: #151515;
+    }
+
+    .skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    .modal-backdrop {
+      animation: fadeIn 160ms ease-out;
+    }
+
+    .modal-panel {
+      animation: slideUp 180ms ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(18px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (orientation: landscape) and (max-height: 520px) {
+      .player-shell {
+        padding: 0.5rem;
+      }
+
+      .player-frame-wrap {
+        height: calc(100vh - 4.5rem);
+      }
+    }
+  </style>
+</head>
+<body class="bg-black text-white antialiased">
+  <header class="sticky top-0 z-40 border-b border-zinc-900 bg-black/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
+      <button id="homeButton" class="shrink-0 text-left" type="button" aria-label="Volver a películas en tendencia">
+        <span class="block text-xl font-black tracking-wide text-[#e50914] sm:text-2xl">STREAMFLIX</span>
+        <span class="hidden text-xs font-medium text-zinc-500 sm:block">Catálogo premium con TMDB</span>
+      </button>
+
+      <form id="searchForm" class="ml-auto flex min-w-0 flex-1 items-center gap-2 sm:max-w-md" role="search">
+        <label for="searchInput" class="sr-only">Buscar películas</label>
+        <div class="relative min-w-0 flex-1">
+          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="m21 21-4.35-4.35M10.8 18.1a7.3 7.3 0 1 1 0-14.6 7.3 7.3 0 0 1 0 14.6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <input
+            id="searchInput"
+            class="h-11 w-full rounded bg-zinc-900 py-2 pl-10 pr-10 text-sm text-white outline-none ring-1 ring-zinc-800 transition placeholder:text-zinc-500 focus:ring-2 focus:ring-[#e50914]"
+            type="search"
+            autocomplete="off"
+            placeholder="Buscar película..."
+            aria-label="Buscar película"
+          />
+          <button
+            id="clearSearchButton"
+            class="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 place-items-center rounded text-zinc-400 transition hover:bg-zinc-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#e50914]"
+            type="button"
+            aria-label="Limpiar búsqueda"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <button
+          class="hidden h-11 rounded bg-[#e50914] px-4 text-sm font-bold text-white transition hover:bg-[#b20710] focus:outline-none focus:ring-2 focus:ring-white sm:inline-flex sm:items-center"
+          type="submit"
+          aria-label="Ejecutar búsqueda"
+        >
+          Buscar
+        </button>
+      </form>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6">
+    <section id="apiKeyAlert" class="mb-5 hidden rounded border border-[#e50914]/50 bg-[#180709] p-4 text-sm text-red-100" role="alert">
+      <p class="font-bold text-white">Falta configurar la API key de TMDB.</p>
+      <p class="mt-1 text-red-100/85">Abre este archivo y reemplaza <span class="font-mono text-white">TU_API_KEY_AQUI</span> por tu clave real en la constante <span class="font-mono text-white">TMDB_API_KEY</span>.</p>
+    </section>
+
+    <section class="mb-5">
+      <div class="flex items-end justify-between gap-3">
+        <div>
+          <p id="eyebrowText" class="text-xs font-bold uppercase tracking-[0.22em] text-[#e50914]">Explorar</p>
+          <h1 id="sectionTitle" class="mt-1 text-2xl font-black tracking-normal text-white sm:text-4xl">Películas en Tendencia</h1>
+        </div>
+        <button
+          id="reloadButton"
+          class="hidden h-10 shrink-0 rounded bg-zinc-900 px-3 text-sm font-bold text-white ring-1 ring-zinc-800 transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#e50914]"
+          type="button"
+          aria-label="Recargar películas"
+        >
+          Reintentar
+        </button>
+      </div>
+    </section>
+
+    <nav class="mb-5" aria-label="Filtros por género">
+      <div id="genreFilters" class="no-scrollbar flex gap-2 overflow-x-auto pb-2">
+        <button
+          class="genre-chip shrink-0 rounded-full bg-[#e50914] px-4 py-2 text-sm font-bold text-white transition focus:outline-none focus:ring-2 focus:ring-white"
+          type="button"
+          data-genre-id="trending"
+          aria-pressed="true"
+        >
+          Tendencias
+        </button>
+      </div>
+    </nav>
+
+    <section id="statusArea" class="min-h-[55vh]" aria-live="polite">
+      <div id="loadingState" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div class="space-y-2">
+          <div class="skeleton aspect-[2/3] rounded"></div>
+          <div class="skeleton h-4 rounded"></div>
+          <div class="skeleton h-3 w-16 rounded"></div>
+        </div>
+        <div class="space-y-2">
+          <div class="skeleton aspect-[2/3] rounded"></div>
+          <div class="skeleton h-4 rounded"></div>
+          <div class="skeleton h-3 w-16 rounded"></div>
+        </div>
+        <div class="space-y-2">
+          <div class="skeleton aspect-[2/3] rounded"></div>
+          <div class="skeleton h-4 rounded"></div>
+          <div class="skeleton h-3 w-16 rounded"></div>
+        </div>
+        <div class="space-y-2">
+          <div class="skeleton aspect-[2/3] rounded"></div>
+          <div class="skeleton h-4 rounded"></div>
+          <div class="skeleton h-3 w-16 rounded"></div>
+        </div>
+        <div class="hidden space-y-2 sm:block">
+          <div class="skeleton aspect-[2/3] rounded"></div>
+          <div class="skeleton h-4 rounded"></div>
+          <div class="skeleton h-3 w-16 rounded"></div>
+        </div>
+        <div class="hidden space-y-2 sm:block">
+          <div class="skeleton aspect-[2/3] rounded"></div>
+          <div class="skeleton h-4 rounded"></div>
+          <div class="skeleton h-3 w-16 rounded"></div>
+        </div>
+      </div>
+
+      <div id="errorState" class="hidden rounded border border-red-900/70 bg-zinc-950 p-5 text-center">
+        <p class="text-lg font-black text-white">No se pudo cargar el catálogo</p>
+        <p id="errorText" class="mt-2 text-sm text-zinc-400">Revisa tu conexión o tu API key de TMDB.</p>
+      </div>
+
+      <div id="emptyState" class="hidden rounded border border-zinc-800 bg-zinc-950 p-8 text-center">
+        <p class="text-lg font-black text-white">Sin resultados</p>
+        <p class="mt-2 text-sm text-zinc-400">Intenta con otro título o selecciona otro género.</p>
+      </div>
+
+      <div id="movieGrid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"></div>
+    </section>
+  </main>
+
+  <div id="detailsModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="detailsTitle">
+    <div class="modal-backdrop absolute inset-0 bg-black/85 backdrop-blur-sm" data-close-details></div>
+    <div class="modal-panel absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-2xl border-t border-zinc-800 bg-[#111111] shadow-2xl sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[88vh] sm:w-[min(920px,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border">
+      <button
+        id="closeDetailsButton"
+        class="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/70 text-white transition hover:bg-[#e50914] focus:outline-none focus:ring-2 focus:ring-white"
+        type="button"
+        aria-label="Cerrar detalles"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <div id="detailsContent" class="p-4 pt-14 sm:p-6 sm:pt-6"></div>
+    </div>
+  </div>
+
+  <div id="playerModal" class="fixed inset-0 z-[60] hidden bg-black" role="dialog" aria-modal="true" aria-labelledby="playerTitle">
+    <div class="player-shell flex h-full flex-col p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5">
+      <div class="mb-3 flex items-center gap-2">
+        <h2 id="playerTitle" class="min-w-0 flex-1 truncate text-sm font-black text-white sm:text-lg">Reproductor</h2>
+        <button
+          id="toggleServerButton"
+          class="shrink-0 rounded bg-zinc-900 px-3 py-2 text-xs font-bold text-white ring-1 ring-zinc-700 transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#e50914] sm:text-sm"
+          type="button"
+          aria-label="Alternar servidor de reproducción"
+        >
+          Alternar Servidor
+        </button>
+        <button
+          id="closePlayerButton"
+          class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#e50914] text-white transition hover:bg-[#b20710] focus:outline-none focus:ring-2 focus:ring-white"
+          type="button"
+          aria-label="Cerrar reproductor"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="player-frame-wrap flex min-h-0 flex-1 items-center justify-center rounded bg-[#050505] ring-1 ring-zinc-900">
+        <iframe
+          id="playerFrame"
+          class="h-full w-full rounded"
+          title="Reproductor de película"
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+          allowfullscreen
+          referrerpolicy="origin"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tu clave API real inyectada directamente aquí abajo:
+    const TMDB_API_KEY = "6c3f18e267981e6b0316a9ae79068b3d"; 
+
+    const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+    const TMDB_IMAGE_URL = "https://image.tmdb.org/t/p/w500";
+    const TMDB_BACKDROP_URL = "https://image.tmdb.org/t/p/w780";
+    const FALLBACK_POSTER = "data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22500%22%20height%3D%22750%22%20viewBox%3D%220%200%20500%20750%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Crect%20width%3D%22500%22%20height%3D%22750%22%20fill%3D%22%23121212%22/%3E%3Crect%20x%3D%2248%22%20y%3D%2258%22%20width%3D%22404%22%20height%3D%22634%22%20rx%3D%2218%22%20stroke%3D%22%23333333%22%20stroke-width%3D%224%22/%3E%3Ccircle%20cx%3D%22250%22%20cy%3D%22326%22%20r%3D%2258%22%20fill%3D%22%23E50914%22%20fill-opacity%3D%220.95%22/%3E%3Cpath%20d%3D%22M235%20294L286%20326L235%20358V294Z%22%20fill%3D%22white%22/%3E%3Ctext%20x%3D%22250%22%20y%3D%22430%22%20text-anchor%3D%22middle%22%20fill%3D%22%23f5f5f5%22%20font-family%3D%22Arial%2C%20sans-serif%22%20font-size%3D%2230%22%20font-weight%3D%22700%22%3ESin%20poster%3C/text%3E%3C/svg%3E";
+
+    const state = {
+      genres: [],
+      movies: [],
+      selectedGenreId: "trending",
+      currentQuery: "",
+      activeMovie: null,
+      playerMovieId: null,
+      activeServer: "primary",
+      lastFocusedElement: null
+    };
+
+    const elements = {
+      apiKeyAlert: document.getElementById("apiKeyAlert"),
+      homeButton: document.getElementById("homeButton"),
+      searchForm: document.getElementById("searchForm"),
+      searchInput: document.getElementById("searchInput"),
+      clearSearchButton: document.getElementById("clearSearchButton"),
+      sectionTitle: document.getElementById("sectionTitle"),
+      eyebrowText: document.getElementById("eyebrowText"),
+      genreFilters: document.getElementById("genreFilters"),
+      reloadButton: document.getElementById("reloadButton"),
+      loadingState: document.getElementById("loadingState"),
+      errorState: document.getElementById("errorState"),
+      errorText: document.getElementById("errorText"),
+      emptyState: document.getElementById("emptyState"),
+      movieGrid: document.getElementById("movieGrid"),
+      detailsModal: document.getElementById("detailsModal"),
+      detailsContent: document.getElementById("detailsContent"),
+      closeDetailsButton: document.getElementById("closeDetailsButton"),
+      playerModal: document.getElementById("playerModal"),
+      playerTitle: document.getElementById("playerTitle"),
+      playerFrame: document.getElementById("playerFrame"),
+      toggleServerButton: document.getElementById("toggleServerButton"),
+      closePlayerButton: document.getElementById("closePlayerButton")
+    };
+
+    function hasApiKey() {
+      return TMDB_API_KEY && TMDB_API_KEY !== "TU_API_KEY_AQUI";
+    }
+
+    function buildTmdbUrl(path, params = {}) {
+      const url = new URL(`${TMDB_BASE_URL}${path}`);
+      url.searchParams.set("api_key", TMDB_API_KEY);
+      url.searchParams.set("language", "es-MX");
+
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, value);
+        }
+      });
+
+      return url.toString();
+    }
+
+    async function fetchFromTmdb(path, params = {}) {
+      if (!hasApiKey()) {
+        throw new Error("missing-api-key");
+      }
+
+      const response = await fetch(buildTmdbUrl(path, params));
+
+      if (!response.ok) {
+        throw new Error(`tmdb-error-${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    function getYear(movie) {
+      const date = movie.release_date || movie.first_air_date || "";
+      return date ? date.slice(0, 4) : "";
+    }
+
+    function getPoster(path) {
+      return path ? `${TMDB_IMAGE_URL}${path}` : FALLBACK_POSTER;
+    }
+
+    function setLoading(isLoading) {
+      elements.loadingState.classList.toggle("hidden", !isLoading);
+      elements.movieGrid.classList.toggle("hidden", isLoading);
+    }
+
+    function showError(message) {
+      setLoading(false);
+      elements.errorText.textContent = message;
+      elements.errorState.classList.remove("hidden");
+      elements.emptyState.classList.add("hidden");
+      elements.movieGrid.innerHTML = "";
+      elements.reloadButton.classList.remove("hidden");
+    }
+
+    function clearStatus() {
+      elements.errorState.classList.add("hidden");
+      elements.emptyState.classList.add("hidden");
+      elements.reloadButton.classList.add("hidden");
+    }
+
+    function updateTitle(title, eyebrow = "Explorar") {
+      elements.sectionTitle.textContent = title;
+      elements.eyebrowText.textContent = eyebrow;
+    }
+
+    function renderMovies(movies) {
+      setLoading(false);
+      clearStatus();
+      elements.movieGrid.innerHTML = "";
+
+      if (!movies.length) {
+        elements.emptyState.classList.remove("hidden");
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+
+      movies.forEach((movie) => {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "group min-w-0 text-left focus:outline-none";
+        card.setAttribute("aria-label", `Ver detalles de ${movie.title || "película"}`);
+        card.innerHTML = `
+          <article class="min-w-0">
+            <div class="aspect-[2/3] overflow-hidden rounded bg-zinc-900 ring-1 ring-zinc-900 transition group-hover:scale-[1.02] group-hover:ring-[#e50914] group-focus:ring-2 group-focus:ring-[#e50914]">
+              <img
+                class="h-full w-full object-cover"
+                src="${getPoster(movie.poster_path)}"
+                alt="Póster de ${escapeHtml(movie.title || "película")}"
+                loading="lazy"
+                onerror="this.src='${FALLBACK_POSTER}'"
+              />
+            </div>
+            <h2 class="line-clamp-2 mt-2 text-sm font-bold leading-tight text-white">${escapeHtml(movie.title || "Sin título")}</h2>
+            <p class="mt-1 text-xs text-zinc-500">${escapeHtml(getYear(movie) || "Año no disponible")}</p>
+          </article>
+        `;
+
+        card.addEventListener("click", () => openMovieDetails(movie.id, card));
+        fragment.appendChild(card);
+      });
+
+      elements.movieGrid.appendChild(fragment);
+    }
+
+    async function fetchTrendingMovies() {
+      clearStatus();
+      setLoading(true);
+      updateTitle("Películas en Tendencia", "Explorar");
+      state.currentQuery = "";
+      state.selectedGenreId = "trending";
+      elements.searchInput.value = "";
+      elements.clearSearchButton.classList.add("hidden");
+      updateActiveGenreChip();
+
+      try {
+        const data = await fetchFromTmdb("/trending/movie/week");
+        state.movies = data.results || [];
+        renderMovies(state.movies);
+      } catch (error) {
+        handleFetchError(error);
+      }
+    }
+
+    async function searchMovies(query) {
+      const cleanQuery = query.trim();
+
+      if (!cleanQuery) {
+        fetchTrendingMovies();
+        return;
+      }
+
+      clearStatus();
+      setLoading(true);
+      state.currentQuery = cleanQuery;
+      state.selectedGenreId = "";
+      updateActiveGenreChip();
+      updateTitle(`Resultados para "${cleanQuery}"`, "Búsqueda");
+
+      try {
+        const data = await fetchFromTmdb("/search/movie", {
+          query: cleanQuery,
+          include_adult: "false",
+          page: "1"
+        });
+        state.movies = data.results || [];
+        renderMovies(state.movies);
+      } catch (error) {
+        handleFetchError(error);
+      }
+    }
+
+    async function fetchGenres() {
+      try {
+        const data = await fetchFromTmdb("/genre/movie/list");
+        state.genres = data.genres || [];
+        renderGenreFilters();
+      } catch (error) {
+        if (error.message === "missing-api-key") {
+          elements.apiKeyAlert.classList.remove("hidden");
+        }
+      }
+    }
+
+    async function discoverMoviesByGenre(genreId, genreName) {
+      clearStatus();
+      setLoading(true);
+      state.selectedGenreId = String(genreId);
+      state.currentQuery = "";
+      elements.searchInput.value = "";
+      elements.clearSearchButton.classList.add("hidden");
+      updateActiveGenreChip();
+      updateTitle(genreName, "Género");
+
+      try {
+        const data = await fetchFromTmdb("/discover/movie", {
+          with_genres: genreId,
+          sort_by: "popularity.desc",
+          include_adult: "false",
+          page: "1"
+        });
+        state.movies = data.results || [];
+        renderMovies(state.movies);
+      } catch (error) {
+        handleFetchError(error);
+      }
+    }
+
+    function renderGenreFilters() {
+      const trendingButton = elements.genreFilters.querySelector('[data-genre-id="trending"]');
+      elements.genreFilters.innerHTML = "";
+      elements.genreFilters.appendChild(trendingButton);
+
+      state.genres.forEach((genre) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "genre-chip shrink-0 rounded-full bg-zinc-900 px-4 py-2 text-sm font-bold text-zinc-200 ring-1 ring-zinc-800 transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#e50914]";
+        button.dataset.genreId = genre.id;
+        button.textContent = genre.name;
+        button.setAttribute("aria-pressed", "false");
+        button.addEventListener("click", () => discoverMoviesByGenre(genre.id, genre.name));
+        elements.genreFilters.appendChild(button);
+      });
+
+      trendingButton.addEventListener("click", fetchTrendingMovies);
+      updateActiveGenreChip();
+    }
+
+    function updateActiveGenreChip() {
+      document.querySelectorAll(".genre-chip").forEach((button) => {
+        const isActive = button.dataset.genreId === String(state.selectedGenreId);
+        button.setAttribute("aria-pressed", String(isActive));
+        button.className = isActive
+          ? "genre-chip shrink-0 rounded-full bg-[#e50914] px-4 py-2 text-sm font-bold text-white transition focus:outline-none focus:ring-2 focus:ring-white"
+          : "genre-chip shrink-0 rounded-full bg-zinc-900 px-4 py-2 text-sm font-bold text-zinc-200 ring-1 ring-zinc-800 transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#e50914]";
+      });
+    }
+
+    async function openMovieDetails(movieId, triggerElement) {
+      state.lastFocusedElement = triggerElement || document.activeElement;
+      elements.detailsContent.innerHTML = `
+        <div class="grid gap-4 sm:grid-cols-[220px_1fr]">
+          <div class="skeleton aspect-[2/3] rounded"></div>
+          <div class="space-y-3">
+            <div class="skeleton h-8 rounded"></div>
+            <div class="skeleton h-4 w-40 rounded"></div>
+            <div class="skeleton h-24 rounded"></div>
+            <div class="skeleton h-12 rounded"></div>
+          </div>
+        </div>
+      `;
+
+      openModal(elements.detailsModal);
+      elements.closeDetailsButton.focus();
+
+      try {
+        const movie = await fetchFromTmdb(`/movie/${movieId}`);
+        state.activeMovie = movie;
+        renderMovieDetails(movie);
+      } catch (error) {
+        elements.detailsContent.innerHTML = `
+          <div class="py-12 text-center">
+            <p class="text-xl font-black text-white">No se pudieron cargar los detalles</p>
+            <p class="mt-2 text-sm text-zinc-400">Intenta abrir la película nuevamente.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderMovieDetails(movie) {
+      const year = getYear(movie);
+      const genres = (movie.genres || []).map((genre) => genre.name).join(", ") || "Género no disponible";
+      const rating = movie.vote_average ? movie.vote_average.toFixed(1) : "N/A";
+      const backdropStyle = movie.backdrop_path
+        ? `background-image: linear-gradient(180deg, rgba(17,17,17,.20), #111111 82%), url('${TMDB_BACKDROP_URL}${movie.backdrop_path}')`
+        : "";
+
+      elements.detailsContent.innerHTML = `
+        <div class="-mx-4 -mt-14 h-48 bg-cover bg-center sm:-mx-6 sm:-mt-6 sm:h-56" style="${backdropStyle}"></div>
+        <div class="-mt-24 grid gap-5 sm:-mt-28 sm:grid-cols-[230px_1fr] sm:items-end">
+          <img
+            class="poster-glow mx-auto aspect-[2/3] w-44 rounded object-cover ring-1 ring-zinc-800 sm:mx-0 sm:w-full"
+            src="${getPoster(movie.poster_path)}"
+            alt="Póster de ${escapeHtml(movie.title || "película")}"
+            onerror="this.src='${FALLBACK_POSTER}'"
+          />
+          <div class="min-w-0 pt-2 sm:pb-2">
+            <h2 id="detailsTitle" class="text-3xl font-black leading-tight text-white sm:text-5xl">${escapeHtml(movie.title || "Sin título")}</h2>
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-zinc-300">
+              <span>${escapeHtml(year || "Año no disponible")}</span>
+              <span class="text-zinc-600">•</span>
+              <span class="rounded bg-zinc-900 px-2 py-1 font-bold text-white">★ ${escapeHtml(rating)}</span>
+            </div>
+            <p class="mt-3 text-sm font-medium text-zinc-300">${escapeHtml(genres)}</p>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <p class="line-clamp-4 text-sm leading-6 text-zinc-300 sm:text-base">${escapeHtml(movie.overview || "Sinopsis no disponible en este idioma.")}</p>
+
+          <button
+            id="playMovieButton"
+            class="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded bg-[#e50914] px-5 text-base font-black text-white transition hover:bg-[#b20710] focus:outline-none focus:ring-2 focus:ring-white sm:w-auto"
+            type="button"
+            aria-label="Reproducir película ${escapeHtml(movie.title || "")}"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M8 5v14l11-7L8 5Z" fill="currentColor"/>
+            </svg>
+            Reproducir Película
+          </button>
+        </div>
+      `;
+
+      document.getElementById("playMovieButton").addEventListener("click", () => {
+        openPlayer(movie.id, movie.title || "Película");
+      });
+    }
+
+    function openPlayer(movieId, title) {
+      state.playerMovieId = movieId;
+      state.activeServer = "primary";
+      elements.playerTitle.textContent = title;
+      elements.playerFrame.src = getPlayerUrl(movieId, state.activeServer);
+      openModal(elements.playerModal);
+      elements.closePlayerButton.focus();
+    }
+
+    function closePlayer() {
+      elements.playerFrame.src = "";
+      state.playerMovieId = null;
+      closeModal(elements.playerModal);
+      if (!elements.detailsModal.classList.contains("hidden")) {
+        elements.closeDetailsButton.focus();
+      }
+    }
+
+    function getPlayerUrl(movieId, server) {
+      if (server === "backup") {
+        return `https://vidsrc.xyz/embed/movie/${movieId}`;
+      }
+
+      return `https://vidlink.pro/movie/${movieId}?primaryColor=ff0000&poster=true`;
+    }
+
+    function togglePlayerServer() {
+      if (!state.playerMovieId) return;
+      state.activeServer = state.activeServer === "primary" ? "backup" : "primary";
+      elements.playerFrame.src = getPlayerUrl(state.playerMovieId, state.activeServer);
+    }
+
+    function openModal(modal) {
+      modal.classList.remove("hidden");
+      document.body.classList.add("modal-open");
+    }
+
+    function closeModal(modal) {
+      modal.classList.add("hidden");
+
+      const anyOpen = !elements.detailsModal.classList.contains("hidden") || !elements.playerModal.classList.contains("hidden");
+      if (!anyOpen) {
+        document.body.classList.remove("modal-open");
+      }
+    }
+
+    function closeDetails() {
+      closeModal(elements.detailsModal);
+      state.activeMovie = null;
+
+      if (state.lastFocusedElement && typeof state.lastFocusedElement.focus === "function") {
+        state.lastFocusedElement.focus();
+      }
+    }
+
+    function handleFetchError(error) {
+      if (error.message === "missing-api-key") {
+        elements.apiKeyAlert.classList.remove("hidden");
+        showError("Agrega tu API key de TMDB para activar el catálogo.");
+        return;
+      }
+
+      showError("Hubo un problema al comunicarse con TMDB. Intenta de nuevo.");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function debounce(callback, delay = 450) {
+      let timerId;
+      return (...args) => {
+        window.clearTimeout(timerId);
+        window.setTimeout(() => callback(...args), delay);
+      };
+    }
+
+    function trapFocus(event) {
+      const activeModal = !elements.playerModal.classList.contains("hidden")
+        ? elements.playerModal
+        : !elements.detailsModal.classList.contains("hidden")
+          ? elements.detailsModal
+          : null;
+
+      if (!activeModal || event.key !== "Tab") return;
+
+      const focusable = activeModal.querySelectorAll('button, iframe, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (!first || !last) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    function bindEvents() {
+      const debouncedSearch = debounce(() => {
+        searchMovies(elements.searchInput.value);
+      });
+
+      elements.searchForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        searchMovies(elements.searchInput.value);
+      });
+
+      elements.searchInput.addEventListener("input", () => {
+        const hasValue = elements.searchInput.value.trim().length > 0;
+        elements.clearSearchButton.classList.toggle("hidden", !hasValue);
+        elements.clearSearchButton.classList.toggle("grid", hasValue);
+        debouncedSearch();
+      });
+
+      elements.clearSearchButton.addEventListener("click", () => {
+        elements.searchInput.value = "";
+        elements.clearSearchButton.classList.add("hidden");
+        elements.clearSearchButton.classList.remove("grid");
+        fetchTrendingMovies();
+        elements.searchInput.focus();
+      });
+
+      elements.homeButton.addEventListener("click", fetchTrendingMovies);
+      elements.reloadButton.addEventListener("click", () => {
+        if (state.currentQuery) {
+          searchMovies(state.currentQuery);
+        } else if (state.selectedGenreId && state.selectedGenreId !== "trending") {
+          const genre = state.genres.find((item) => String(item.id) === String(state.selectedGenreId));
+          discoverMoviesByGenre(state.selectedGenreId, genre ? genre.name : "Género");
+        } else {
+          fetchTrendingMovies();
+        }
+      });
+
+      elements.closeDetailsButton.addEventListener("click", closeDetails);
+      elements.detailsModal.querySelector("[data-close-details]").addEventListener("click", closeDetails);
+      elements.closePlayerButton.addEventListener("click", closePlayer);
+      elements.toggleServerButton.addEventListener("click", togglePlayerServer);
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          if (!elements.playerModal.classList.contains("hidden")) {
+            closePlayer();
+            return;
+          }
+
+          if (!elements.detailsModal.classList.contains("hidden")) {
+            closeDetails();
+          }
+        }
+
+        trapFocus(event);
+      });
+    }
+
+    async function initApp() {
+      bindEvents();
+
+      if (!hasApiKey()) {
+        elements.apiKeyAlert.classList.remove("hidden");
+      }
+
+      await Promise.all([fetchGenres(), fetchTrendingMovies()]);
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
