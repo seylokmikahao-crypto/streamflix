@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>StreamFlix Latino Clean</title>
+  <title>StreamFlix Stable Premium</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root { color-scheme: dark; --red: #e50914; }
-    * { -webkit-tap-highlight-color: transparent; }
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { background: #000000; min-width: 320px; }
     body.modal-open { overflow: hidden; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .skeleton { position: relative; overflow: hidden; background: #151515; }
+    .skeleton { position: relative; overflow: hidden; background: #141414; }
     .skeleton::after {
       content: ""; position: absolute; inset: 0; transform: translateX(-100%);
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
-      animation: shimmer 1.4s infinite;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+      animation: shimmer 1.5s infinite;
     }
     @keyframes shimmer { 100% { transform: translateX(100%); } }
   </style>
@@ -29,7 +29,7 @@
     <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
       <button id="homeButton" class="shrink-0 text-left" type="button">
         <span class="block text-xl font-black tracking-wide text-[#e50914] sm:text-2xl">STREAMFLIX</span>
-        <span class="hidden text-xs font-medium text-zinc-500 sm:block">Filtro Limpio Latino</span>
+        <span class="block text-[10px] font-bold tracking-widest text-zinc-500 uppercase">Servidores Verificados</span>
       </button>
 
       <form id="searchForm" class="ml-auto flex min-w-0 flex-1 items-center gap-2 sm:max-w-md">
@@ -37,8 +37,8 @@
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m21 21-4.35-4.35M10.8 18.1a7.3 7.3 0 1 1 0-14.6 7.3 7.3 0 0 1 0 14.6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </span>
-          <input id="searchInput" class="h-11 w-full rounded bg-zinc-900 py-2 pl-10 pr-10 text-sm text-white outline-none ring-1 ring-zinc-800 focus:ring-2 focus:ring-[#e50914]" type="search" autocomplete="off" placeholder="Buscar películas en español..."/>
-          <button id="clearSearchButton" class="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 place-items-center rounded text-zinc-400 hover:bg-zinc-800 hover:text-white" type="button">
+          <input id="searchInput" class="h-11 w-full rounded bg-zinc-900 py-2 pl-10 pr-10 text-sm text-white outline-none ring-1 ring-zinc-800 focus:ring-2 focus:ring-[#e50914]" type="search" autocomplete="off" placeholder="Buscar título en la base de datos..."/>
+          <button id="clearSearchButton" class="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 place-items-center rounded text-zinc-400 hover:bg-zinc-800" type="button">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </button>
         </div>
@@ -48,13 +48,12 @@
 
   <main class="mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6">
     <section class="mb-5">
-      <p class="text-xs font-bold uppercase tracking-[0.22em] text-[#e50914]">Catálogo</p>
-      <h1 id="sectionTitle" class="mt-1 text-2xl font-black tracking-normal text-white sm:text-4xl">Películas Disponibles</h1>
+      <h1 id="sectionTitle" class="text-2xl font-black tracking-normal text-white sm:text-4xl">Películas Populares</h1>
     </section>
 
-    <nav class="mb-5">
+    <nav class="mb-6">
       <div id="genreFilters" class="no-scrollbar flex gap-2 overflow-x-auto pb-2">
-        <button class="genre-chip shrink-0 rounded-full bg-[#e50914] px-4 py-2 text-sm font-bold text-white" type="button" data-genre-id="trending">Tendencias</button>
+        <button class="genre-chip shrink-0 rounded bg-[#e50914] px-4 py-2 text-xs font-black uppercase text-white tracking-wider" type="button" data-genre-id="trending">🔥 Tendencias</button>
       </div>
     </nav>
 
@@ -66,24 +65,24 @@
       </div>
 
       <div id="errorState" class="hidden rounded border border-zinc-800 bg-zinc-950 p-5 text-center">
-        <p class="text-lg font-black text-white">Error de carga</p>
+        <p class="text-lg font-bold text-white">Error al conectar con la base de datos.</p>
       </div>
 
       <div id="emptyState" class="hidden rounded border border-zinc-800 bg-zinc-950 p-8 text-center">
-        <p class="text-lg font-black text-white">Sin resultados</p>
+        <p class="text-lg font-bold text-white">No se encontraron resultados.</p>
       </div>
 
       <div id="movieGrid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"></div>
       
       <div id="loadMoreContainer" class="mt-10 flex justify-center hidden">
-        <button id="loadMoreButton" class="rounded bg-zinc-900 px-6 py-3 text-sm font-bold border border-zinc-800 hover:bg-zinc-800 transition">Ver más películas</button>
+        <button id="loadMoreButton" class="rounded bg-zinc-900 px-6 py-3 text-sm font-black border border-zinc-800 hover:bg-zinc-800 transition tracking-wide">MOSTRAR MÁS PELÍCULAS</button>
       </div>
     </section>
   </main>
 
   <div id="detailsModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" id="closeBg"></div>
-    <div class="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-2xl border-t border-zinc-800 bg-[#111111] p-4 pt-12 sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[88vh] sm:w-[850px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border sm:p-6">
+    <div class="absolute inset-0 bg-black/90 backdrop-blur-sm" id="closeBg"></div>
+    <div class="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-2xl border-t border-zinc-800 bg-[#0f0f0f] p-4 pt-12 sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[88vh] sm:w-[800px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border sm:p-6">
       <button id="closeDetailsButton" class="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/70 text-white hover:bg-[#e50914]" type="button">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
@@ -92,22 +91,25 @@
   </div>
 
   <div id="playerModal" class="fixed inset-0 z-[60] hidden bg-black">
-    <div class="flex h-full flex-col p-3">
-      <div class="mb-3 flex items-center gap-2">
-        <h2 id="playerTitle" class="min-w-0 flex-1 truncate text-base font-black text-white">Reproductor Latino</h2>
-        <select id="serverSelect" class="rounded bg-zinc-900 border border-zinc-700 px-2 py-1.5 text-xs font-bold text-white outline-none">
-          <option value="latino1">Servidor Latino Ultra (Recomendado)</option>
-          <option value="latino2">Servidor Latino Alternativo</option>
-          <option value="clean3">Servidor Multi-idioma (Sin Popups)</option>
-        </select>
-        <button id="closePlayerButton" class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#e50914] text-white" type="button">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-        </button>
+    <div class="flex h-full flex-col p-2 sm:p-4">
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <h2 id="playerTitle" class="min-w-0 flex-1 truncate text-sm sm:text-base font-black text-white">Reproductor Estable</h2>
+        
+        <div class="flex items-center gap-2">
+          <select id="serverSelect" class="rounded bg-zinc-900 border border-zinc-700 px-2 py-1.5 text-xs font-black text-white outline-none focus:border-[#e50914]">
+            <option value="srv1">Servidor 1 (Estable + Opciones de Audio)</option>
+            <option value="srv2">Servidor 2 (Alternativo)</option>
+          </select>
+          <button id="closePlayerButton" class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#e50914] text-white font-bold" type="button">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="flex min-h-0 flex-1 items-center justify-center rounded bg-[#050505] ring-1 ring-zinc-900 relative">
-        <iframe id="playerFrame" class="h-full w-full rounded" title="Video" 
+      
+      <div class="flex min-h-0 flex-1 items-center justify-center rounded bg-zinc-950 ring-1 ring-zinc-900 relative">
+        <iframe id="playerFrame" class="h-full w-full rounded" title="VideoPlayer" 
                 allow="autoplay; fullscreen" allowfullscreen referrerpolicy="origin"
-                sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"></iframe>
+                sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts"></iframe>
       </div>
     </div>
   </div>
@@ -117,7 +119,7 @@
     const TMDB_BASE_URL = "https://api.themoviedb.org/3";
     const TMDB_IMAGE_URL = "https://image.tmdb.org/t/p/w500";
     
-    const state = { movies: [], currentPage: 1, selectedGenreId: "trending", currentQuery: "", activeMovieId: null };
+    const state = { currentPage: 1, selectedGenreId: "trending", currentQuery: "", activeMovieId: null };
 
     const elements = {
       homeButton: document.getElementById("homeButton"),
@@ -144,13 +146,11 @@
     };
 
     function getPlayerUrl(movieId, serverKey) {
-      // Usamos canales y filtros optimizados para idioma español/latino con la menor carga de anuncios posible
-      switch(serverKey) {
-        case "latino1": return `https://multiembed.mov/?video_id=${movieId}&tmdb=1`; 
-        case "latino2": return `https://vidsrc.pro/embed/movie/${movieId}`;
-        case "clean3": return `https://vidsrc.cc/v2/embed/movie/${movieId}`;
-        default: return `https://multiembed.mov/?video_id=${movieId}&tmdb=1`;
+      if (serverKey === "srv2") {
+        return `https://embed.su/embed/movie/${movieId}`;
       }
+      // Servidor 1: vidsrc.cc tiene reproductor inteligente integrado (permite cambiar a Español/Latino en su propio menú de engrane)
+      return `https://vidsrc.cc/v2/embed/movie/${movieId}`;
     }
 
     async function fetchFromTmdb(path, params = {}) {
@@ -175,12 +175,12 @@
       movieList.forEach(movie => {
         if (!movie.poster_path) return;
         const card = document.createElement("button");
-        card.className = "group text-left focus:outline-none transition transform hover:scale-[1.02]";
+        card.className = "group text-left focus:outline-none transition transform hover:scale-[1.01]";
         card.innerHTML = `
-          <div class="aspect-[2/3] overflow-hidden rounded bg-zinc-900 ring-1 ring-zinc-800 group-hover:ring-[#e50914]">
+          <div class="aspect-[2/3] overflow-hidden rounded bg-zinc-900 ring-1 ring-zinc-800 group-hover:ring-[#e50914] transition">
             <img class="h-full w-full object-cover" src="${TMDB_IMAGE_URL}${movie.poster_path}" alt="poster" loading="lazy" />
           </div>
-          <h2 class="line-clamp-2 mt-2 text-xs sm:text-sm font-bold leading-tight">${movie.title}</h2>
+          <h2 class="line-clamp-2 mt-2 text-xs font-bold leading-tight text-zinc-300 group-hover:text-white">${movie.title}</h2>
         `;
         card.addEventListener("click", () => openDetails(movie.id));
         elements.movieGrid.appendChild(card);
@@ -214,23 +214,23 @@
     }
 
     async function openDetails(id) {
-      elements.detailsContent.innerHTML = `<div class="text-center p-10 text-zinc-400">Cargando...</div>`;
+      elements.detailsContent.innerHTML = `<div class="text-center p-10 text-zinc-500 font-bold">Cargando detalles...</div>`;
       elements.detailsModal.classList.remove("hidden");
       document.body.classList.add("modal-open");
       try {
         const movie = await fetchFromTmdb(`/movie/${id}`);
         elements.detailsContent.innerHTML = `
-          <div class="grid gap-5 sm:grid-cols-[200px_1fr]">
-            <img class="rounded shadow-xl w-48 mx-auto sm:w-full" src="${TMDB_IMAGE_URL}${movie.poster_path}" />
-            <div>
-              <h2 class="text-2xl font-black sm:text-4xl text-white">${movie.title}</h2>
-              <div class="mt-2 flex gap-3 text-xs font-bold text-zinc-400">
+          <div class="grid gap-6 sm:grid-cols-[200px_1fr]">
+            <img class="rounded shadow-2xl w-44 mx-auto sm:w-full border border-zinc-800" src="${TMDB_IMAGE_URL}${movie.poster_path}" />
+            <div class="flex flex-col justify-center">
+              <h2 class="text-xl font-black sm:text-3xl text-white tracking-tight">${movie.title}</h2>
+              <div class="mt-2 flex gap-3 text-xs font-bold text-zinc-500">
                 <span>Año: ${movie.release_date ? movie.release_date.slice(0,4) : 'N/A'}</span>
-                <span>★ ${movie.vote_average.toFixed(1)}</span>
+                <span class="text-yellow-500">★ ${movie.vote_average.toFixed(1)}</span>
               </div>
-              <p class="mt-4 text-sm text-zinc-300 leading-relaxed">${movie.overview || 'Sin sinopsis disponible.'}</p>
-              <button id="playBtn" class="mt-6 flex h-12 items-center justify-center gap-2 rounded bg-[#e50914] px-6 font-black text-white hover:bg-[#b20710] w-full sm:w-auto">
-                ▶ REPRODUCIR EN ESPAÑOL
+              <p class="mt-4 text-xs sm:text-sm text-zinc-400 leading-relaxed">${movie.overview || 'Sin sinopsis oficial disponible.'}</p>
+              <button id="playBtn" class="mt-6 flex h-12 items-center justify-center gap-2 rounded bg-[#e50914] px-6 text-xs font-black uppercase tracking-wider text-white hover:bg-[#b20710] transition w-full sm:w-auto shadow-lg shadow-red-900/20">
+                ▶ REPRODUCIR PELÍCULA
               </button>
             </div>
           </div>
@@ -238,12 +238,12 @@
         document.getElementById("playBtn").addEventListener("click", () => {
           state.activeMovieId = id;
           elements.playerTitle.textContent = movie.title;
-          elements.serverSelect.value = "latino1"; 
-          elements.playerFrame.src = getPlayerUrl(id, "latino1");
+          elements.serverSelect.value = "srv1"; 
+          elements.playerFrame.src = getPlayerUrl(id, "srv1");
           elements.playerModal.classList.remove("hidden");
         });
       } catch (e) {
-        elements.detailsContent.innerHTML = `<div class="text-center p-10 text-red-500">Error al cargar.</div>`;
+        elements.detailsContent.innerHTML = `<div class="text-center p-10 text-red-500 font-bold">Error al conectar.</div>`;
       }
     }
 
@@ -252,11 +252,11 @@
         const data = await fetchFromTmdb("/genre/movie/list");
         data.genres.forEach(genre => {
           const btn = document.createElement("button");
-          btn.className = "genre-chip shrink-0 rounded-full bg-zinc-900 px-4 py-2 text-sm font-bold text-zinc-300 border border-zinc-800";
+          btn.className = "genre-chip shrink-0 rounded bg-zinc-900 border border-zinc-800 px-4 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:bg-zinc-800 hover:text-white transition";
           btn.textContent = genre.name;
           btn.addEventListener("click", () => {
-            document.querySelectorAll(".genre-chip").forEach(b => b.className = "genre-chip shrink-0 rounded-full bg-zinc-900 px-4 py-2 text-sm font-bold text-zinc-300 border border-zinc-800");
-            btn.className = "genre-chip shrink-0 rounded-full bg-[#e50914] px-4 py-2 text-sm font-bold text-white";
+            document.querySelectorAll(".genre-chip").forEach(b => b.className = "genre-chip shrink-0 rounded bg-zinc-900 border border-zinc-800 px-4 py-2 text-xs font-bold text-zinc-400 uppercase tracking-wider hover:bg-zinc-800 transition");
+            btn.className = "genre-chip shrink-0 rounded bg-[#e50914] px-4 py-2 text-xs font-bold uppercase text-white tracking-wider";
             state.selectedGenreId = genre.id; state.currentQuery = ""; state.currentPage = 1; elements.searchInput.value = "";
             elements.sectionTitle.textContent = genre.name;
             loadCatalog(1, false);
