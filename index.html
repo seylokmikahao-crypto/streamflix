@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>StreamFlix Stable Premium</title>
+  <title>StreamFlix Latino Estable</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root { color-scheme: dark; --red: #e50914; }
@@ -29,7 +29,7 @@
     <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
       <button id="homeButton" class="shrink-0 text-left" type="button">
         <span class="block text-xl font-black tracking-wide text-[#e50914] sm:text-2xl">STREAMFLIX</span>
-        <span class="block text-[10px] font-bold tracking-widest text-zinc-500 uppercase">Servidores Verificados</span>
+        <span class="block text-[10px] font-bold tracking-widest text-zinc-500 uppercase">Filtro Latino Auto</span>
       </button>
 
       <form id="searchForm" class="ml-auto flex min-w-0 flex-1 items-center gap-2 sm:max-w-md">
@@ -37,7 +37,7 @@
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m21 21-4.35-4.35M10.8 18.1a7.3 7.3 0 1 1 0-14.6 7.3 7.3 0 0 1 0 14.6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </span>
-          <input id="searchInput" class="h-11 w-full rounded bg-zinc-900 py-2 pl-10 pr-10 text-sm text-white outline-none ring-1 ring-zinc-800 focus:ring-2 focus:ring-[#e50914]" type="search" autocomplete="off" placeholder="Buscar título en la base de datos..."/>
+          <input id="searchInput" class="h-11 w-full rounded bg-zinc-900 py-2 pl-10 pr-10 text-sm text-white outline-none ring-1 ring-zinc-800 focus:ring-2 focus:ring-[#e50914]" type="search" autocomplete="off" placeholder="Buscar película..."/>
           <button id="clearSearchButton" class="absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 place-items-center rounded text-zinc-400 hover:bg-zinc-800" type="button">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </button>
@@ -65,7 +65,7 @@
       </div>
 
       <div id="errorState" class="hidden rounded border border-zinc-800 bg-zinc-950 p-5 text-center">
-        <p class="text-lg font-bold text-white">Error al conectar con la base de datos.</p>
+        <p class="text-lg font-bold text-white">Error al conectar con el servidor de películas.</p>
       </div>
 
       <div id="emptyState" class="hidden rounded border border-zinc-800 bg-zinc-950 p-8 text-center">
@@ -75,7 +75,7 @@
       <div id="movieGrid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"></div>
       
       <div id="loadMoreContainer" class="mt-10 flex justify-center hidden">
-        <button id="loadMoreButton" class="rounded bg-zinc-900 px-6 py-3 text-sm font-black border border-zinc-800 hover:bg-zinc-800 transition tracking-wide">MOSTRAR MÁS PELÍCULAS</button>
+        <button id="loadMoreButton" class="rounded bg-zinc-900 px-6 py-3 text-sm font-black border border-zinc-800 hover:bg-zinc-800 transition tracking-wide">MOSTRAR MÁS</button>
       </div>
     </section>
   </main>
@@ -92,24 +92,16 @@
 
   <div id="playerModal" class="fixed inset-0 z-[60] hidden bg-black">
     <div class="flex h-full flex-col p-2 sm:p-4">
-      <div class="mb-3 flex flex-wrap items-center gap-2">
-        <h2 id="playerTitle" class="min-w-0 flex-1 truncate text-sm sm:text-base font-black text-white">Reproductor Estable</h2>
-        
-        <div class="flex items-center gap-2">
-          <select id="serverSelect" class="rounded bg-zinc-900 border border-zinc-700 px-2 py-1.5 text-xs font-black text-white outline-none focus:border-[#e50914]">
-            <option value="srv1">Servidor 1 (Estable + Opciones de Audio)</option>
-            <option value="srv2">Servidor 2 (Alternativo)</option>
-          </select>
-          <button id="closePlayerButton" class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#e50914] text-white font-bold" type="button">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-          </button>
-        </div>
+      <div class="mb-3 flex items-center justify-between gap-4">
+        <h2 id="playerTitle" class="min-w-0 flex-1 truncate text-base font-black text-white">Cargando...</h2>
+        <button id="closePlayerButton" class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#e50914] text-white font-bold hover:bg-[#b20710] transition" type="button">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </button>
       </div>
       
-      <div class="flex min-h-0 flex-1 items-center justify-center rounded bg-zinc-950 ring-1 ring-zinc-900 relative">
+      <div class="flex min-h-0 flex-1 items-center justify-center rounded bg-zinc-950 ring-1 ring-zinc-900">
         <iframe id="playerFrame" class="h-full w-full rounded" title="VideoPlayer" 
-                allow="autoplay; fullscreen" allowfullscreen referrerpolicy="origin"
-                sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts"></iframe>
+                allow="autoplay; fullscreen" allowfullscreen referrerpolicy="origin"></iframe>
       </div>
     </div>
   </div>
@@ -119,7 +111,7 @@
     const TMDB_BASE_URL = "https://api.themoviedb.org/3";
     const TMDB_IMAGE_URL = "https://image.tmdb.org/t/p/w500";
     
-    const state = { currentPage: 1, selectedGenreId: "trending", currentQuery: "", activeMovieId: null };
+    const state = { currentPage: 1, selectedGenreId: "trending", currentQuery: "" };
 
     const elements = {
       homeButton: document.getElementById("homeButton"),
@@ -141,16 +133,12 @@
       playerModal: document.getElementById("playerModal"),
       playerTitle: document.getElementById("playerTitle"),
       playerFrame: document.getElementById("playerFrame"),
-      serverSelect: document.getElementById("serverSelect"),
       closePlayerButton: document.getElementById("closePlayerButton")
     };
 
-    function getPlayerUrl(movieId, serverKey) {
-      if (serverKey === "srv2") {
-        return `https://embed.su/embed/movie/${movieId}`;
-      }
-      // Servidor 1: vidsrc.cc tiene reproductor inteligente integrado (permite cambiar a Español/Latino en su propio menú de engrane)
-      return `https://vidsrc.cc/v2/embed/movie/${movieId}`;
+    // Cambiado al servidor vidsrc.pro configurado nativamente con el ID de TMDB
+    function getPlayerUrl(movieId) {
+      return `https://vidsrc.pro/embed/movie/${movieId}`;
     }
 
     async function fetchFromTmdb(path, params = {}) {
@@ -230,16 +218,14 @@
               </div>
               <p class="mt-4 text-xs sm:text-sm text-zinc-400 leading-relaxed">${movie.overview || 'Sin sinopsis oficial disponible.'}</p>
               <button id="playBtn" class="mt-6 flex h-12 items-center justify-center gap-2 rounded bg-[#e50914] px-6 text-xs font-black uppercase tracking-wider text-white hover:bg-[#b20710] transition w-full sm:w-auto shadow-lg shadow-red-900/20">
-                ▶ REPRODUCIR PELÍCULA
+                ▶ REPRODUCIR EN ESPAÑOL LATINO
               </button>
             </div>
           </div>
         `;
         document.getElementById("playBtn").addEventListener("click", () => {
-          state.activeMovieId = id;
           elements.playerTitle.textContent = movie.title;
-          elements.serverSelect.value = "srv1"; 
-          elements.playerFrame.src = getPlayerUrl(id, "srv1");
+          elements.playerFrame.src = getPlayerUrl(id);
           elements.playerModal.classList.remove("hidden");
         });
       } catch (e) {
@@ -271,10 +257,6 @@
     elements.searchInput.addEventListener("input", () => { elements.clearSearchButton.classList.toggle("hidden", !elements.searchInput.value); });
     elements.clearSearchButton.addEventListener("click", () => { elements.searchInput.value = ""; elements.clearSearchButton.classList.add("hidden"); state.currentQuery = ""; state.currentPage = 1; loadCatalog(1, false); });
     elements.homeButton.addEventListener("click", () => { state.currentQuery = ""; state.selectedGenreId = "trending"; state.currentPage = 1; elements.searchInput.value = ""; loadCatalog(1, false); });
-    
-    elements.serverSelect.addEventListener("change", (e) => {
-      if (state.activeMovieId) elements.playerFrame.src = getPlayerUrl(state.activeMovieId, e.target.value);
-    });
 
     function closeDetails() { elements.detailsModal.classList.add("hidden"); document.body.classList.remove("modal-open"); }
     elements.closeDetailsButton.addEventListener("click", closeDetails);
